@@ -6,7 +6,7 @@
 # 
 # 4) Give a presentation during the Wednesday sync session and submit the slides in PDF format on Canvas.
 
-setwd("/Users/asheets/Documents/Work_Computer/Grad_School/PREDICT_422/GroupProjectEC")
+setwd("/Users/asheets/Documents/Work_Computer/Grad_School/PREDICT_422/PREDICT422_GroupECProject/SheetsA_GroupProjectWork")
 data <- read.csv(file='Speed_Dating_Data.csv',header=TRUE,sep=",",stringsAsFactors=FALSE)
 
 ##Look at data
@@ -74,9 +74,8 @@ corrgram(data2[,c(nums$variable)], order=TRUE, lower.panel=panel.shade,
 corrplot(correlations, method = "circle") #plot matrix
 
 ##Try out modeling "decision" using variables from the SCORECARD in the data dictionary
-input_vars <- c('attr', 'sinc', 'intel', 'fun', 'amb', 'shar', 'like', 'prob','gender')
-testing <- data[,c("dec",input_vars)]
-testing <- testing[which(complete.cases(testing)),]
+testing <- data[,c(2:3,7:8,10,13:17,34,40:42,46:48,51:68,70:75,82:92)]
+testing <- testing[complete.cases(testing),]
 
 ## split data into train and test
 smp_size <- floor(0.75 * nrow(testing))
@@ -89,11 +88,11 @@ test <- testing[-train_ind, ]
 ##Try some models
 
 #Linear Reg
-lm.fit <- lm(dec~.,data=train)
+lm.fit <- lm(match~.,data=train)
 step.lm <- step(lm.fit)
 
 #Logistic Reg
-glm.fit=glm(dec~.,
+glm.fit=glm(match~.,
             data=testing,family = binomial)
 step.glm <- step(glm.fit)
 
