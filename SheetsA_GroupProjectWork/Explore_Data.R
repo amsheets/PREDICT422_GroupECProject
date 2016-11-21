@@ -87,18 +87,25 @@ test <- testing[-train_ind, ]
 
 ##Try some models
 
-#Linear Reg
-lm.fit <- lm(match~.,data=train)
-step.lm <- step(lm.fit)
-
 #Logistic Reg
 glm.fit=glm(match~.,
-            data=testing,family = binomial)
+            data=train,family = binomial)
 step.glm <- step(glm.fit)
+glm.probs <- predict(step.glm,test,type="response")
+glm.pred <- ifelse(glm.probs >= 0.35,1,0)
+confusionMatrix(glm.pred,test$match)
 
 ##Other modeling techniques
 
 ##KNN
 set.seed(1)
-knn.pred=knn(train,test,train$dec,k=1)
-table(knn.pred ,test$dec)
+knn.pred=knn(train,test,train$match,k=7)
+table(knn.pred ,test$match)
+
+##Tree
+model.tree1 <- tree(as.factor(donr) ~ .,data=data.train.std.c)
+plot(model.tree1)
+text(model.tree1)
+
+post.valid.tree0 <- predict(model.tree1,data.valid.std.c)
+mean((as.numeric(as.character(post.valid.tree0[,2])) - c.valid)^2)
