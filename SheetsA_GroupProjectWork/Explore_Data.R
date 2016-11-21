@@ -14,18 +14,23 @@ summary(data)
 
 ##Are there any complete observations?
 table(complete.cases(data))
+# 
+# vars <- data.frame(varname = colnames(data),pct_miss = rep(0,length(colnames(data))))
+# 
+# for (i in 1:length(colnames(data))) {
+#   na = sum(is.na(data[,c(vars$varname[i])]))
+#   total = length(data[,c(vars$varname[i])])
+#   vars$pct_miss[i] <- round(na / total,digits = 3)
+# }
+# 
+# use_vars <- vars[which(vars$pct_miss <= 0.20),]
 
-vars <- data.frame(varname = colnames(data),pct_miss = rep(0,length(colnames(data))))
+##Only use waves where metrics are on the same scale
+data2 <- data[which(data$wave %in% c(1:5,10:21)),]
 
-for (i in 1:length(colnames(data))) {
-  na = sum(is.na(data[,c(vars$varname[i])]))
-  total = length(data[,c(vars$varname[i])])
-  vars$pct_miss[i] <- round(na / total,digits = 3)
-}
-
-use_vars <- vars[which(vars$pct_miss <= 0.20),]
-
-data2 <- data[,c(use_vars$varname)]
+##Try subset variables due to missing data
+data2 <- data2[,c(2:3,7:8,10,13:17,34,40:42,46:48,51:68,70:75,82:92)]
+data2 <- data2[complete.cases(data2),]
 
 ##Look into which variables are numeric and which are character
 nums <- data.frame(sapply(data2, is.numeric))
@@ -34,12 +39,12 @@ char <- data.frame(sapply(data2, is.character))
 nums$variable <- rownames(nums)
 char$variable <- rownames(char)
 
-nums <- nums[which(nums$sapply.data2..is.numeric. == TRUE),]
-char <- char[which(char$sapply.data2..is.character. == TRUE),]
+nums <- rownames(nums[which(nums$sapply.data2..is.numeric. == TRUE),])
+char <- rownames(char[which(char$sapply.data2..is.character. == TRUE),])
 
 #Examine Correlations
 
-correlations <- data.frame(cor(data2[,c(nums$variable)], use="complete.obs", method="pearson") )
+correlations <- data.frame(cor(data2[,c(nums)], use="complete.obs", method="pearson") )
 
 #
 significant.correlations <- data.frame(
@@ -65,25 +70,33 @@ for (i in 1:nrow(correlations)){
 significant.correlations <- significant.correlations[order(abs(significant.correlations$corr),decreasing=TRUE),] 
 significant.correlations <- significant.correlations[which(!duplicated(significant.correlations$corr)),]
 
-##Lots of significant correlations and multi-collinearity
+# var1     var2       corr
+# 1       art  museums  0.8464676
+# 9     music concerts  0.6602164
+# 11  sinc2_1  attr2_1 -0.6204424
+# 12 intel2_1  attr2_1 -0.5786796
+# 2   theater  museums  0.5141893
+# 4   theater      art  0.5060697
+# 7    movies  theater  0.5047329
+# 13   amb2_1  attr2_1 -0.5029098
 
-corrgram(data2[,c(nums$variable)], order=TRUE, lower.panel=panel.shade,
+##some multicollinearity
+
+corrgram(data2[,c(nums)], order=TRUE, lower.panel=panel.shade,
          upper.panel=panel.pie, text.panel=panel.txt,
          main="Correlations")
 
 corrplot(correlations, method = "circle") #plot matrix
 
-##Try out modeling "decision" using variables from the SCORECARD in the data dictionary
-testing <- data[,c(2:3,7:8,10,13:17,34,40:42,46:48,51:68,70:75,82:92)]
-testing <- testing[complete.cases(testing),]
+
 
 ## split data into train and test
-smp_size <- floor(0.75 * nrow(testing))
+smp_size <- floor(0.75 * nrow(data2))
 set.seed(22)
-train_ind <- sample(seq_len(nrow(testing)), size = smp_size)
+train_ind <- sample(seq_len(nrow(data2)), size = smp_size)
 
-train <- testing[train_ind, ]
-test <- testing[-train_ind, ]
+train <- data2[train_ind, ]
+test <- data2[-train_ind, ]
 
 ##Try some models
 
@@ -93,7 +106,7 @@ glm.fit=glm(match~.,
 step.glm <- step(glm.fit)
 glm.probs <- predict(step.glm,test,type="response")
 glm.pred <- ifelse(glm.probs >= 0.35,1,0)
-confusionMatrix(glm.pred,test$match)
+confusionMatrix(glm.pred,test$match,positive='1')
 
 ##Other modeling techniques
 
@@ -101,11 +114,30 @@ confusionMatrix(glm.pred,test$match)
 set.seed(1)
 knn.pred=knn(train,test,train$match,k=7)
 table(knn.pred ,test$match)
+confusionMatrix(knn.pred,test$match,positive='1')
 
 ##Tree
-model.tree1 <- tree(as.factor(donr) ~ .,data=data.train.std.c)
+model.tree1 <- tree(as.factor(match) ~ .,data=train)
 plot(model.tree1)
 text(model.tree1)
 
-post.valid.tree0 <- predict(model.tree1,data.valid.std.c)
-mean((as.numeric(as.character(post.valid.tree0[,2])) - c.valid)^2)
+tree.pred<- predict(model.tree1,test)
+
+##SVM
+library(e1071)
+library(doParallel)
+cl <- makeCluster(detectCores()) 
+registerDoParallel(cl)
+
+##Tune the model
+set.seed(1)
+svm.tune=tune(svm,match~.,data=train ,kernel ="radial",ranges =list(cost=c(0.001 , 0.01, 0.1, 1,5,10,100) ))
+summary(svm.tune)
+
+bestmod =svm.tune$best.model
+summary(bestmod)
+
+post.valid.svm =data.frame(pred = predict(bestmod,train))
+post.valid.svm$flag <-ifelse(post.valid.svm$pred >= 0.1,1,0)
+table(post.valid.svm$flag,train$match)
+confusionMatrix(post.valid.svm$flag,train$match,positive='1')
