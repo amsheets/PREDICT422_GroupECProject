@@ -6,7 +6,7 @@
 # 
 # 4) Give a presentation during the Wednesday sync session and submit the slides in PDF format on Canvas.
 
-setwd("/Users/asheets/Documents/Work_Computer/Grad_School/PREDICT_422/PREDICT422_GroupECProject/SheetsA_GroupProjectWork")
+setwd("/Users/asheets/Documents/Work_Computer/Grad_School/PREDICT_422/PREDICT422_GroupECProject")
 data <- read.csv(file='Speed_Dating_Data.csv',header=TRUE,sep=",",stringsAsFactors=FALSE)
 
 ##Look at data
