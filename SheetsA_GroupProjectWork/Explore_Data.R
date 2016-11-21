@@ -131,7 +131,7 @@ test.std <- t((t(x.test)-test.mean)/test.sd) # standardize to have zero mean and
 test.std <- cbind(y.test,test.std)
 
 ##Try some models
-
+set.seed(1)
 library(doParallel)
 cl <- makeCluster(detectCores()) 
 registerDoParallel(cl)
@@ -201,6 +201,7 @@ table(knn.pred ,test.std$match)
 confusionMatrix(knn.pred,test.std$match,positive='1')
 
 ##Tree
+set.seed(1)
 model.tree1 <- rpart(as.factor(match) ~ gender+order+int_corr+samerace+age_o+age+imprace+date+go_out+dining+museums+art+clubbing+reading+movies+concerts+
                        attr1_1 + sinc1_1 + shar1_1 + attr3_1 + amb3_1,data=train.std,method="class")
 prp(model.tree1)
@@ -210,7 +211,7 @@ tree.pred<- predict(model.tree1,test.std)
 ##Not good... 
 
 ##Random Forest
-
+set.seed(1)
 model.RF1 <- randomForest(as.factor(match)~.,data=train.std,
                           mtry=13, ntree =501)
 
