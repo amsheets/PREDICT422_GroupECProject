@@ -7,7 +7,7 @@ This is a group extra credit project that looks into what variables can be used 
 
 * **Anna Sheets** 
 * **Annie Bruckner** 
-* **Elizabeth Ulrich**
+* **Elizabeth Zimmerman**
 * **Alexandra Funk** 
 
 ## Acknowledgments
