@@ -6,8 +6,39 @@
 # 
 # 4) Give a presentation during the Wednesday sync session and submit the slides in PDF format on Canvas.
 
-setwd("/Users/asheets/Documents/Work_Computer/Grad_School/PREDICT_422/PREDICT422_GroupECProject")
+setwd("./PREDICT422_GroupECProject")
 data <- read.csv(file='Speed_Dating_Data.csv',header=TRUE,sep=",",stringsAsFactors=FALSE)
+
+#Install Packages if they don't current exist on this machine
+list.of.packages <- c("doBy"
+                      ,"lazyeval"
+                      ,"psych"
+                      ,"lars"
+                      ,"GGally"
+                      ,"ggplot2"
+                      ,"gridExtra"
+                      ,"corrgram"
+                      ,"corrplot"
+                      ,"leaps"
+                      ,"glmnet"
+                      ,"MASS"
+                      ,"gbm"
+                      ,"tree"
+                      ,"rpart"
+                      ,"rpart.plot"
+                      ,"gam"
+                      ,"class"
+                      ,"e1071"
+                      ,"randomForest"
+                      ,"doParallel"
+                      ,"iterators"
+                      ,"foreach"
+                      ,"parallel")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+
+#Load all packages
+lapply(list.of.packages, require, character.only = TRUE)
 
 ##Look at data
 summary(data)
@@ -227,6 +258,10 @@ library(e1071)
 
 ##Tune the model
 set.seed(1)
+library(doParallel)
+cl <- makeCluster(detectCores()) 
+registerDoParallel(cl)
+                          
 svm.tune=tune(svm,match~.,data=train.std ,kernel ="radial",ranges =list(cost=c(0.001 , 0.01, 0.1, 1,5,10,100) ))
 summary(svm.tune)
 
