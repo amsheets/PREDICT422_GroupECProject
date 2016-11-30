@@ -7,7 +7,7 @@
 # 4) Give a presentation during the Wednesday sync session and submit the slides in PDF format on Canvas.
 
 setwd("./PREDICT422_GroupECProject")
-data <- read.csv(file='Speed_Dating_Data.csv',header=TRUE,sep=",",stringsAsFactors=FALSE)
+data <- read.csv(file='./GroupProjectWork/Kaggle_Resources/Speed_Dating_Data.csv',header=TRUE,sep=",",stringsAsFactors=FALSE)
 
 #Install Packages if they don't current exist on this machine
 list.of.packages <- c("doBy"
