@@ -328,9 +328,11 @@ importance(model.RF3)
 # reprtree:::plot.getTree(model.RF1)
 #This is way too noisy to show, but a neat technique!
 
-pred.RF1 = predict(model.RF1,newdata = test.std)
+##Question: Could we tell which direction Order impacted whether there was a match?
+model.RF3.tree <- getTree(model.RF3, k=1, labelVar=TRUE)
+model.RF3.tree[which(model.RF3.tree$`split var` == 'order'),]
 
-confusionMatrix(pred.RF1,test.std$match,positive='1')
+##A lot of splits on Order!
 
 ##SVM
 library(e1071)
