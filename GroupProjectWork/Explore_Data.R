@@ -12,6 +12,8 @@ data <- read.csv(file='./GroupProjectWork/Kaggle_Resources/Speed_Dating_Data.csv
 #Install Packages if they don't current exist on this machine
 list.of.packages <- c("doBy"
                       ,"lazyeval"
+                      ,"caret"
+                      ,"car"
                       ,"psych"
                       ,"lars"
                       ,"GGally"
@@ -63,6 +65,9 @@ data2 <- data[which(data$wave %in% c(1:5,10:21)),]
 ##Try subset variables due to missing data
 data2 <- data2[,c(3,7:8,10,13:17,34,40:42,46:48,51:68,70:75,82:92)]
 data2 <- data2[complete.cases(data2),]
+
+dim(data2)
+# [1] 6521   51
 
 plots <- vector("list", 51)
 names <- colnames(data)
@@ -116,7 +121,7 @@ for (i in 1:nrow(correlations)){
 
 significant.correlations <- significant.correlations[order(abs(significant.correlations$corr),decreasing=TRUE),] 
 significant.correlations <- significant.correlations[which(!duplicated(significant.correlations$corr)),]
-
+significant.correlations
 # var1     var2       corr
 # 1       art  museums  0.8464676
 # 9     music concerts  0.6602164
@@ -173,7 +178,7 @@ glm.fit=glm(match~.,
 # AIC: 4330.9
 step.glm <- step(glm.fit)
 # AIC: 4297
-# vif(step.glm)
+vif(step.glm)
 # gender     order  int_corr  samerace     age_o       age   imprace      date    go_out    dining   museums 
 # 2.140385  1.011482  1.090534  1.040206  1.045940  1.162631  1.105335  1.292842  1.227202  1.384723  4.389361 
 # art       clubbing   reading    movies  concerts   attr1_1   sinc1_1   shar1_1   attr2_1   sinc2_1  intel2_1 
@@ -183,7 +188,41 @@ step.glm <- step(glm.fit)
 glm.final=glm(match~gender+order+int_corr+samerace+age_o+age+imprace+date+go_out+dining+museums+art+clubbing+reading+movies+concerts+
               attr1_1 + sinc1_1 + shar1_1 + attr3_1 + amb3_1,
             data=train.std,family = binomial)
+
+summary(glm.final)
+# (Intercept) -1.68542    0.04077 -41.341  < 2e-16 ***
+#   gender       0.05605    0.04536   1.236 0.216519    
+#   order       -0.08676    0.03980  -2.180 0.029280 *  
+#   int_corr     0.11081    0.04065   2.726 0.006411 ** 
+#   samerace     0.10619    0.03912   2.714 0.006643 ** 
+#   age_o       -0.11250    0.04118  -2.732 0.006298 ** 
+#   age         -0.16609    0.04384  -3.789 0.000151 ***
+#   imprace     -0.13133    0.04148  -3.166 0.001545 ** 
+#   date        -0.10904    0.04289  -2.542 0.011020 *  
+#   go_out      -0.09475    0.04635  -2.044 0.040936 *  
+#   dining       0.10886    0.04764   2.285 0.022303 *  
+#   museums     -0.19399    0.08171  -2.374 0.017589 *  
+#   art          0.17841    0.07932   2.249 0.024508 *  
+#   clubbing     0.10192    0.04159   2.450 0.014268 *  
+#   reading      0.07368    0.04415   1.669 0.095131 .  
+#   movies      -0.14499    0.04399  -3.296 0.000982 ***
+#   concerts     0.10529    0.04705   2.238 0.025246 *  
+#   attr1_1     -0.15592    0.05524  -2.822 0.004767 ** 
+#   sinc1_1     -0.08600    0.04718  -1.823 0.068345 .  
+#   shar1_1     -0.13738    0.04478  -3.068 0.002158 ** 
+#   attr3_1      0.07290    0.04513   1.615 0.106227    
+#   amb3_1      -0.06253    0.04313  -1.450 0.147103    
+# ---
+#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# 
+# (Dispersion parameter for binomial family taken to be 1)
+# 
+# Null deviance: 4393.6  on 4889  degrees of freedom
+# Residual deviance: 4253.5  on 4868  degrees of freedom
 # AIC: 4297.5
+# 
+# Number of Fisher Scoring iterations: 4
+
 glm.probs <- predict(glm.final,test.std,type="response")
 
 my_roc <- function(predicted.probs=glm.probs,actual=test.std$match) {
@@ -218,7 +257,9 @@ my_roc <- function(predicted.probs=glm.probs,actual=test.std$match) {
   return(list(p,auc))
 }
 
-my_roc_stuff <- my_roc(data$scored.probability,data$class)
+my_roc_stuff <- my_roc(glm.probs,test.std$match)
+my_roc_stuff
+##Not good looking at the ROC curve!
 
 glm.pred <- ifelse(glm.probs >= 0.35,1,0)
 confusionMatrix(glm.pred,test.std$match,positive='1')
@@ -243,13 +284,38 @@ tree.pred<- predict(model.tree1,test.std)
 
 ##Random Forest
 set.seed(1)
+
+#pick arbitrary mtry
 model.RF1 <- randomForest(as.factor(match)~.,data=train.std,
                           mtry=13, ntree =501)
 
-pred.RF1 = predict(model.RF1,newdata = test.std)
+##Chose default suggestion
+mtry.value <- floor(sqrt(ncol(train.std)-1))
 
+model.RF2 <- randomForest(as.factor(match)~.,data=train.std,
+                          mtry=mtry.value, ntree =501)
+
+##Tune the RF: http://machinelearningmastery.com/tune-machine-learning-algorithms-in-r/
+bestmtry <- tuneRF(train.std[,c(-1)], as.factor(train.std$match), stepFactor=1.5, improve=1e-5, ntree=500)
+print(bestmtry)
+##Best is 4
+
+model.RF3 <- randomForest(as.factor(match)~.,data=train.std,
+                          mtry=4, ntree =501)
+
+##Small increase in accuracy.
+
+
+##A little too late to update the final model for presenting, but something to think about in the future.
 varImpPlot(model.RF1)
 importance(model.RF1)
+
+##Print a tree from the forest resource:
+# http://stats.stackexchange.com/questions/41443/how-to-actually-plot-a-sample-tree-from-randomforestgettree
+# reprtree:::plot.getTree(model.RF1)
+#This is way too noisy to show, but a neat technique!
+
+pred.RF1 = predict(model.RF1,newdata = test.std)
 
 confusionMatrix(pred.RF1,test.std$match,positive='1')
 
