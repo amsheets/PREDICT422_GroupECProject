@@ -289,11 +289,21 @@ set.seed(1)
 model.RF1 <- randomForest(as.factor(match)~.,data=train.std,
                           mtry=13, ntree =501)
 
+pred.RF1 = predict(model.RF1,newdata = test.std)
+
+confusionMatrix(pred.RF1,test.std$match,positive='1')
+# Accuracy : 0.8228  
+
 ##Chose default suggestion
 mtry.value <- floor(sqrt(ncol(train.std)-1))
 
 model.RF2 <- randomForest(as.factor(match)~.,data=train.std,
                           mtry=mtry.value, ntree =501)
+
+pred.RF2 = predict(model.RF2,newdata = test.std)
+
+confusionMatrix(pred.RF2,test.std$match,positive='1')
+# Accuracy : 0.8332  
 
 ##Tune the RF: http://machinelearningmastery.com/tune-machine-learning-algorithms-in-r/
 bestmtry <- tuneRF(train.std[,c(-1)], as.factor(train.std$match), stepFactor=1.5, improve=1e-5, ntree=500)
@@ -303,12 +313,15 @@ print(bestmtry)
 model.RF3 <- randomForest(as.factor(match)~.,data=train.std,
                           mtry=4, ntree =501)
 
-##Small increase in accuracy.
+pred.RF3 = predict(model.RF3,newdata = test.std)
 
+confusionMatrix(pred.RF3,test.std$match,positive='1')
+# Accuracy : 0.8351
 
-##A little too late to update the final model for presenting, but something to think about in the future.
-varImpPlot(model.RF1)
-importance(model.RF1)
+##Small increases in accuracy.
+
+varImpPlot(model.RF3)
+importance(model.RF3)
 
 ##Print a tree from the forest resource:
 # http://stats.stackexchange.com/questions/41443/how-to-actually-plot-a-sample-tree-from-randomforestgettree
